@@ -1,0 +1,20 @@
+{
+  "name": "foliomd-viewer",
+  "version": "1.0.0",
+  "description": "Clean, dark-themed PDF-style Markdown & Folder Viewer with local IndexedDB caching, VS Code file explorer, section outline, and advanced Markdown (Mermaid, Charts, KaTeX, Figures).",
+  "private": true,
+  "scripts": {
+    "start": "npx --yes serve . -l 3000",
+    "dev": "npx --yes vite --port 3000 --open",
+    "python-serve": "python3 -m http.server 3000"
+  },
+  "keywords": [
+    "markdown",
+    "viewer",
+    "pdf-viewer",
+    "mermaid",
+    "katex",
+    "dark-theme"
+  ],
+  "license": "MIT"
+}

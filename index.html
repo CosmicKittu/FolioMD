@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FolioMD — PDF-Style Markdown & Folder Viewer</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none'%3E%3Crect width='32' height='32' rx='8' fill='%23161b26'/%3E%3Crect x='1' y='1' width='30' height='30' rx='7' stroke='%236366f1' stroke-opacity='0.4' stroke-width='2'/%3E%3Cpath d='M9 8h9l5 5v11a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z' stroke='%23818cf8' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M17 8v6h6' stroke='%23818cf8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M11 18h10M11 22h6' stroke='%23c7d2fe' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E" />
+
+  <!-- Fonts (Inter, JetBrains Mono, Newsreader, Lexend, OpenDyslexic) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/opendyslexic@1.0.3/open-dyslexic.css" />
+
+  <!-- Highlight.js Dark Theme -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
+
+  <!-- KaTeX Math CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css" />
+
+  <!-- Application Styles -->
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <!-- Hidden Inputs for Fallback / Universal File & Folder Selection -->
+  <input type="file" id="file-input-md" accept=".md,.markdown,.mdx,.txt,.mkd" multiple hidden />
+  <input type="file" id="folder-input-md" webkitdirectory directory multiple hidden />
+
+  <!-- Global Drag & Drop Overlay -->
+  <div id="dropzone-overlay" class="dropzone-overlay hidden" aria-hidden="true">
+    <div class="dropzone-modal">
+      <div class="dropzone-icon-wrap">
+        <svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="17 8 12 3 7 8" />
+          <line x1="12" y1="3" x2="12" y2="15" />
+        </svg>
+      </div>
+      <h3>Drop Folder or Markdown File</h3>
+      <p>Release to open and cache locally in FolioMD</p>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- VIEW 1: HOMEPAGE                                                      -->
+  <!-- ===================================================================== -->
+  <div id="home-view" class="view-container active">
+    <!-- Homepage Header -->
+    <header class="home-header">
+      <div class="home-header-inner">
+        <div class="brand-logo">
+          <div class="brand-icon">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <line x1="10" y1="9" x2="8" y2="9"></line>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <span class="brand-name">FolioMD</span>
+            <span class="brand-badge">PDF-Style Reader</span>
+          </div>
+        </div>
+
+        <div class="home-header-actions">
+          <div id="cache-status-pill" class="cache-status-pill" title="Files and folders are cached locally in IndexedDB for instant offline access">
+            <span class="status-dot"></span>
+            <span id="cache-status-text">Local Cache Ready</span>
+          </div>
+          <button id="btn-load-demo" class="btn btn-secondary btn-sm" title="Open rich sample documentation workspace with graphs, figures, math & linked files">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+            <span>Explore Sample Workspace</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Homepage Main Content -->
+    <main class="home-main">
+      <!-- Open File / Folder Hero Section -->
+      <section class="hero-section">
+        <div class="hero-heading">
+          <h1>Open Markdown File or Folder</h1>
+          <p>Select a local Markdown document or project directory. Everything you open is cached locally for instant one-click access.</p>
+        </div>
+
+        <div class="open-cards-grid">
+          <!-- Card 1: Open Local Folder -->
+          <button id="card-open-folder" class="open-action-card open-folder-card" type="button">
+            <div class="open-card-glow"></div>
+            <div class="open-card-icon folder-accent">
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                <line x1="12" y1="11" x2="12" y2="17"></line>
+                <line x1="9" y1="14" x2="15" y2="14"></line>
+              </svg>
+            </div>
+            <div class="open-card-content">
+              <div class="open-card-title-row">
+                <h2>Open Local Folder</h2>
+                <span class="open-card-shortcut">Directory</span>
+              </div>
+              <p>Load an entire folder containing Markdown files, nested subfolders, relative links, and local images.</p>
+              <div class="open-card-cta">
+                <span>Browse Folder</span>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                  <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+              </div>
+            </div>
+          </button>
+
+          <!-- Card 2: Open Markdown File -->
+          <button id="card-open-file" class="open-action-card open-file-card" type="button">
+            <div class="open-card-glow"></div>
+            <div class="open-card-icon file-accent">
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <path d="M9 15l2 2 4-4"></path>
+              </svg>
+            </div>
+            <div class="open-card-content">
+              <div class="open-card-title-row">
+                <h2>Open Markdown File</h2>
+                <span class="open-card-shortcut">.md / .mdx</span>
+              </div>
+              <p>Select a single Markdown file (or multiple files) to read in a crisp dark PDF-viewer layout with outline navigation.</p>
+              <div class="open-card-cta">
+                <span>Select File</span>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                  <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+              </div>
+            </div>
+          </button>
+        </div>
+
+        <!-- Feature Pills Strip -->
+        <div class="feature-strip">
+          <span class="feature-pill">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+            VS Code Explorer &amp; Section Outline
+          </span>
+          <span class="feature-pill">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            Mermaid Diagrams &amp; Interactive Charts
+          </span>
+          <span class="feature-pill">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            Figures, Captions &amp; KaTeX Math
+          </span>
+          <span class="feature-pill">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            Cross-File Link Navigation (Back / Forward)
+          </span>
+        </div>
+      </section>
+
+      <!-- Recent Files & Folders Section (Below Open Cards) -->
+      <section class="recent-section" aria-labelledby="recent-heading">
+        <div class="recent-header">
+          <div class="recent-title-group">
+            <h2 id="recent-heading">
+              <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              <span>Recent Files &amp; Folders</span>
+            </h2>
+            <span id="recent-count-badge" class="recent-count-badge">0 cached</span>
+          </div>
+
+          <div class="recent-controls">
+            <!-- Filter Tabs -->
+            <div class="recent-tabs" role="tablist">
+              <button class="recent-tab active" data-filter="all" role="tab" aria-selected="true">All</button>
+              <button class="recent-tab" data-filter="folder" role="tab" aria-selected="false">Folders</button>
+              <button class="recent-tab" data-filter="file" role="tab" aria-selected="false">Files</button>
+              <button class="recent-tab" data-filter="pinned" role="tab" aria-selected="false">Pinned</button>
+              <button class="recent-tab" data-filter="tagged" role="tab" aria-selected="false">🏷 Tagged</button>
+            </div>
+
+            <!-- Search Recent -->
+            <div class="recent-search-wrap">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input type="text" id="recent-search-input" placeholder="Filter recent cache..." autocomplete="off" />
+            </div>
+
+            <!-- Clear Cache Button -->
+            <button id="btn-clear-recent" class="btn btn-ghost btn-sm" title="Clear all cached recent files and folders">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+              <span>Clear Cache</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Recent Items Grid/List -->
+        <div id="recent-items-container" class="recent-items-grid"></div>
+
+        <!-- Empty State when no recent items match -->
+        <div id="recent-empty-state" class="recent-empty-state hidden">
+          <div class="empty-state-icon">
+            <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+            </svg>
+          </div>
+          <h3>No recent files or folders yet</h3>
+          <p>Open any local Markdown file or folder above — or load the sample workspace — and it will be cached here for instant access.</p>
+          <button id="btn-empty-load-demo" class="btn btn-primary btn-sm">
+            Load Sample Markdown Workspace
+          </button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- VIEW 2: MARKDOWN PDF VIEWER PAGE                                      -->
+  <!-- ===================================================================== -->
+  <div id="viewer-view" class="view-container">
+    <!-- Top PDF Viewer Toolbar -->
+    <header id="viewer-toolbar" class="viewer-toolbar">
+      <!-- Left Toolbar Group: Left Outline Toggle, Home, Back/Forward History, Breadcrumb -->
+      <div class="toolbar-group toolbar-left">
+        <button id="btn-toggle-left-sidebar" class="toolbar-icon-btn active" title="Toggle Left Sectional Navigator (Ctrl+B)">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="9" y1="3" x2="9" y2="21"></line>
+            <line x1="5" y1="8" x2="7" y2="8"></line>
+            <line x1="5" y1="12" x2="7" y2="12"></line>
+            <line x1="5" y1="16" x2="7" y2="16"></line>
+          </svg>
+        </button>
+
+        <button id="btn-go-home" class="toolbar-icon-btn" title="Back to Homepage (Recent Files & Folders)">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+          </svg>
+        </button>
+
+        <span class="toolbar-divider"></span>
+
+        <!-- Navigation History: Back, Forward, History Trail -->
+        <div class="history-nav-group">
+          <button id="btn-nav-back" class="toolbar-icon-btn" disabled title="Navigate Back (Alt+Left)">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"></line>
+              <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+          </button>
+          <button id="btn-nav-forward" class="toolbar-icon-btn" disabled title="Navigate Forward (Alt+Right)">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </button>
+          <div class="history-dropdown-wrap">
+            <button id="btn-nav-history" class="toolbar-icon-btn history-trigger-btn" title="Navigation History">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9"></circle>
+                <polyline points="12 7 12 12 15 15"></polyline>
+              </svg>
+            </button>
+            <div id="history-popover" class="history-popover hidden">
+              <div class="popover-header">
+                <span>Navigation History</span>
+                <span id="history-step-badge" class="popover-badge">1 / 1</span>
+              </div>
+              <div id="history-list" class="history-list"></div>
+            </div>
+          </div>
+        </div>
+
+        <span class="toolbar-divider"></span>
+
+        <!-- Current Document Breadcrumbs -->
+        <nav id="viewer-breadcrumbs" class="viewer-breadcrumbs" aria-label="Breadcrumb"></nav>
+      </div>
+
+      <!-- Center Toolbar Group: PDF Zoom & Page Display Controls -->
+      <div class="toolbar-group toolbar-center">
+        <div class="pdf-zoom-controls">
+          <button id="btn-zoom-out" class="toolbar-icon-btn" title="Zoom Out (Ctrl+-)">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+          <button id="btn-zoom-reset" class="zoom-readout-btn" title="Click to Reset Zoom to 100%">100%</button>
+          <button id="btn-zoom-in" class="toolbar-icon-btn" title="Zoom In (Ctrl++)">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+        </div>
+
+        <span class="toolbar-divider hide-mobile"></span>
+
+        <button id="btn-page-mode" class="toolbar-pill-btn hide-mobile" title="Switch Page Width (PDF Sheet / Wide / Full)">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="2" width="16" height="20" rx="2"></rect>
+            <line x1="8" y1="6" x2="16" y2="6"></line>
+            <line x1="8" y1="10" x2="16" y2="10"></line>
+            <line x1="8" y1="14" x2="12" y2="14"></line>
+          </svg>
+          <span id="page-mode-label">Page View</span>
+        </button>
+
+        <!-- Reading Sheet Theme (Dark / White / Yellow Mode) -->
+        <button id="btn-theme-mode" class="toolbar-pill-btn hide-mobile" title="Switch Reading Sheet Theme (Dark / White / Yellow Mode)">
+          <svg id="theme-mode-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+          <span id="theme-mode-label">Dark</span>
+        </button>
+
+        <!-- Code Block Theme (Dark Card / Paper Match) -->
+        <button id="btn-code-theme" class="toolbar-pill-btn hide-mobile" title="Toggle Code Card Style: Dark Card vs Paper Match (Alt+C)">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="16 18 22 12 16 6"></polyline>
+            <polyline points="8 6 2 12 8 18"></polyline>
+          </svg>
+          <span id="code-theme-label">Code: Dark</span>
+        </button>
+
+        <!-- Typography Switcher (Sans / Serif / Mono / Dyslexic / Lexend) -->
+        <button id="btn-font-mode" class="toolbar-pill-btn hide-mobile" title="Switch Typography (Sans / Serif / Mono / Dyslexic / Lexend)">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 7 4 4 20 4 20 7"></polyline>
+            <line x1="9" y1="20" x2="15" y2="20"></line>
+            <line x1="12" y1="4" x2="12" y2="20"></line>
+          </svg>
+          <span id="font-mode-label">Sans</span>
+        </button>
+
+        <!-- Bionic Reading Toggle (ADHD Focus Assistant) -->
+        <button id="btn-bionic-toggle" class="toolbar-pill-btn bionic-pill-btn" title="Toggle Bionic Reading Mode (ADHD Fixation Focus)">
+          <span class="bionic-tag-dot"></span>
+          <span class="bionic-label">Bionic</span>
+        </button>
+      </div>
+
+      <!-- Right Toolbar Group: Tagged Menu, Find, Quick Switch, Open, Print, Right VS Code Explorer Toggle -->
+      <div class="toolbar-group toolbar-right">
+        <!-- Tagged Content Explorer Button -->
+        <button id="btn-tags-menu" class="toolbar-pill-btn tags-trigger-btn" title="View All Tagged Documents (Favorite, Important, Incomplete, Like)">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+            <line x1="7" y1="7" x2="7.01" y2="7"></line>
+          </svg>
+          <span>Tagged</span>
+          <span id="tagged-total-badge" class="toolbar-badge">0</span>
+        </button>
+        <button id="btn-find-in-doc" class="toolbar-icon-btn" title="Find in Document (Ctrl+F)">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </button>
+
+        <button id="btn-quick-open" class="toolbar-pill-btn hide-mobile" title="Quick Open File in Workspace (Ctrl+P / Ctrl+K)">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+          </svg>
+          <span>Go to File</span>
+          <kbd class="toolbar-kbd">⌘P</kbd>
+        </button>
+
+        <button id="btn-sync-disk" class="toolbar-icon-btn hidden" title="Reload Latest Changes from Local Disk">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+        </button>
+
+        <button id="btn-print-pdf" class="toolbar-icon-btn hide-mobile" title="Print or Export as PDF">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 6 2 18 2 18 9"></polyline>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+            <rect x="6" y="14" width="12" height="8"></rect>
+          </svg>
+        </button>
+
+        <span class="toolbar-divider"></span>
+
+        <button id="btn-toggle-right-sidebar" class="toolbar-icon-btn active" title="Toggle Right File & Folder Explorer (Ctrl+E)">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="15" y1="3" x2="15" y2="21"></line>
+            <line x1="17" y1="8" x2="19" y2="8"></line>
+            <line x1="17" y1="12" x2="19" y2="12"></line>
+            <line x1="17" y1="16" x2="19" y2="16"></line>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main 3-Column Viewer Workspace -->
+    <div id="viewer-workspace" class="viewer-workspace">
+      <!-- Mobile Backdrop for Drawers -->
+      <div id="mobile-sidebar-backdrop" class="mobile-sidebar-backdrop hidden"></div>
+
+      <!-- ================================================================= -->
+      <!-- LEFT SIDEBAR: SECTIONAL NAVIGATOR OF MARKDOWN (OUTLINE & FIGURES) -->
+      <!-- ================================================================= -->
+      <aside id="left-sidebar" class="sidebar left-sidebar" aria-label="Markdown Sectional Navigator">
+        <div class="sidebar-header">
+          <div class="sidebar-tabs">
+            <button class="sidebar-tab active" data-left-tab="outline" title="Document Section Outline">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="8" y1="6" x2="21" y2="6"></line>
+                <line x1="8" y1="12" x2="21" y2="12"></line>
+                <line x1="8" y1="18" x2="21" y2="18"></line>
+                <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                <line x1="3" y1="18" x2="3.01" y2="18"></line>
+              </svg>
+              <span>SECTIONS</span>
+              <span id="outline-count-badge" class="sidebar-count-pill">0</span>
+            </button>
+            <button class="sidebar-tab" data-left-tab="figures" title="Figures, Graphs, Charts & Tables">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <polyline points="21 15 16 10 5 21"></polyline>
+              </svg>
+              <span>FIGURES</span>
+              <span id="figures-count-badge" class="sidebar-count-pill">0</span>
+            </button>
+          </div>
+          <div class="sidebar-header-actions">
+            <button id="btn-scroll-top" class="sidebar-action-btn" title="Scroll to Top of Document">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="18 15 12 9 6 15"></polyline>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Reading Progress Bar -->
+        <div class="reading-progress-track" title="Document reading progress">
+          <div id="reading-progress-bar" class="reading-progress-fill"></div>
+        </div>
+
+        <!-- Filter Input for Sections -->
+        <div class="sidebar-search-box">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="outline-filter-input" placeholder="Filter sections..." autocomplete="off" />
+        </div>
+
+        <!-- Tab Panel 1: Sectional Outline Tree -->
+        <div id="left-panel-outline" class="sidebar-scroll-area">
+          <nav id="outline-tree" class="outline-tree" aria-label="Table of Contents"></nav>
+        </div>
+
+        <!-- Tab Panel 2: Figures, Graphs & Tables Index -->
+        <div id="left-panel-figures" class="sidebar-scroll-area hidden">
+          <div id="figures-list" class="figures-index-list"></div>
+        </div>
+      </aside>
+
+      <!-- Left Sidebar Resizer -->
+      <div id="left-resizer" class="sidebar-resizer" title="Drag to resize sectional navigator"></div>
+
+      <!-- ================================================================= -->
+      <!-- CENTER CANVAS: PDF-VIEWER STYLE MARKDOWN DOCUMENT                 -->
+      <!-- ================================================================= -->
+      <main id="center-canvas" class="center-canvas">
+        <!-- Floating Find in Document Bar -->
+        <div id="find-bar" class="find-bar hidden">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="find-input" placeholder="Find in document..." autocomplete="off" />
+          <span id="find-match-count" class="find-match-count">0 / 0</span>
+          <button id="btn-find-prev" class="find-nav-btn" title="Previous Match (Shift+Enter)">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"></polyline></svg>
+          </button>
+          <button id="btn-find-next" class="find-nav-btn" title="Next Match (Enter)">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+          <button id="btn-find-close" class="find-nav-btn" title="Close Find Bar (Esc)">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+
+        <!-- Scrollable PDF Viewport -->
+        <div id="document-viewport" class="document-viewport">
+          <div id="document-zoom-wrapper" class="document-zoom-wrapper">
+            <article id="document-sheet" class="document-sheet page-mode-sheet font-mode-sans sheet-theme-dark">
+              <!-- Document Tags Header Bar (4 Quick Tags: Favorite, Important, Incomplete, Like) -->
+              <div id="doc-tag-bar" class="doc-tag-bar">
+                <div class="tag-bar-left">
+                  <span class="tag-bar-label">
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                      <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                    </svg>
+                    <span>TAGS:</span>
+                  </span>
+                  <div class="tag-pills-list">
+                    <button type="button" class="tag-pill-btn tag-favorite" data-tag-name="favorite" title="Toggle 'Favorite' tag for this document">
+                      <span class="tag-pill-icon">★</span>
+                      <span class="tag-pill-label">Favorite</span>
+                    </button>
+                    <button type="button" class="tag-pill-btn tag-important" data-tag-name="important" title="Toggle 'Important' tag for this document">
+                      <span class="tag-pill-icon">⚑</span>
+                      <span class="tag-pill-label">Important</span>
+                    </button>
+                    <button type="button" class="tag-pill-btn tag-incomplete" data-tag-name="incomplete" title="Toggle 'Incomplete' tag for this document">
+                      <span class="tag-pill-icon">⏱</span>
+                      <span class="tag-pill-label">Incomplete</span>
+                    </button>
+                    <button type="button" class="tag-pill-btn tag-like" data-tag-name="like" title="Toggle 'Like' tag for this document">
+                      <span class="tag-pill-icon">👍</span>
+                      <span class="tag-pill-label">Like</span>
+                    </button>
+                  </div>
+                </div>
+                <div class="tag-bar-right">
+                  <button type="button" id="btn-shortcut-view-tags" class="tag-bar-shortcut-btn" title="View menu of all tagged content">
+                    <span>All Tagged</span>
+                    <span id="doc-tags-active-counter" class="tag-active-counter hidden">0</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- YAML Frontmatter Metadata Bar (if present) -->
+              <div id="doc-frontmatter" class="doc-frontmatter hidden"></div>
+
+              <!-- Rendered Markdown Content -->
+              <div id="markdown-body" class="markdown-body"></div>
+
+              <!-- Document Footer: History & Sequential Folder Navigation -->
+              <footer id="doc-footer" class="doc-footer">
+                <div id="doc-footer-nav" class="doc-footer-nav"></div>
+              </footer>
+            </article>
+          </div>
+        </div>
+      </main>
+
+      <!-- Right Sidebar Resizer -->
+      <div id="right-resizer" class="sidebar-resizer" title="Drag to resize file explorer"></div>
+
+      <!-- ================================================================= -->
+      <!-- RIGHT SIDEBAR: VS CODE FILE & FOLDER NAVIGATION                   -->
+      <!-- ================================================================= -->
+      <aside id="right-sidebar" class="sidebar right-sidebar" aria-label="File and Folder Explorer">
+        <div class="sidebar-header vscode-explorer-header">
+          <span class="sidebar-title-label">EXPLORER</span>
+          <div class="sidebar-header-actions">
+            <button id="btn-explorer-open-file" class="sidebar-action-btn" title="Open Markdown File">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="12" y1="18" x2="12" y2="12"></line>
+                <line x1="9" y1="15" x2="15" y2="15"></line>
+              </svg>
+            </button>
+            <button id="btn-explorer-open-folder" class="sidebar-action-btn" title="Open Local Folder">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                <line x1="12" y1="11" x2="12" y2="17"></line>
+                <line x1="9" y1="14" x2="15" y2="14"></line>
+              </svg>
+            </button>
+            <button id="btn-explorer-expand-all" class="sidebar-action-btn" title="Expand All Folders">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="7 13 12 18 17 13"></polyline>
+                <polyline points="7 6 12 11 17 6"></polyline>
+              </svg>
+            </button>
+            <button id="btn-explorer-collapse-all" class="sidebar-action-btn" title="Collapse All Folders">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="17 11 12 6 7 11"></polyline>
+                <polyline points="17 18 12 13 7 18"></polyline>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Active Workspace / Folder Subheader -->
+        <div class="vscode-workspace-bar">
+          <div class="workspace-bar-left">
+            <svg class="workspace-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+            <span id="explorer-workspace-name" class="workspace-name">WORKSPACE</span>
+          </div>
+          <span id="explorer-file-count" class="sidebar-count-pill">0 files</span>
+        </div>
+
+        <!-- Filter Files in Folder -->
+        <div class="sidebar-search-box">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="explorer-filter-input" placeholder="Filter files in folder..." autocomplete="off" />
+        </div>
+
+        <!-- VS Code File & Folder Tree -->
+        <div class="sidebar-scroll-area explorer-tree-scroll">
+          <div id="explorer-tree" class="vscode-tree" role="tree" aria-label="Workspace Files"></div>
+        </div>
+
+        <!-- Quick Cached Recent Switcher at Bottom of Right Sidebar -->
+        <div class="explorer-recent-drawer">
+          <button id="btn-toggle-mini-recent" class="explorer-section-toggle" type="button">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            <span>RECENT CACHED</span>
+            <svg class="toggle-chevron" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+          </button>
+          <div id="mini-recent-list" class="mini-recent-list hidden"></div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Bottom Status Bar (VS Code + PDF Viewer style) -->
+    <footer id="viewer-statusbar" class="viewer-statusbar">
+      <div class="statusbar-left">
+        <span id="status-source-badge" class="status-item status-source">
+          <span class="status-dot"></span>
+          <span id="status-source-text">Local Cache</span>
+        </span>
+        <span id="status-file-path" class="status-item status-path">README.md</span>
+      </div>
+      <div class="statusbar-right">
+        <span id="status-words" class="status-item">0 words</span>
+        <span id="status-readtime" class="status-item">1 min read</span>
+        <span id="status-sections" class="status-item hide-mobile">0 sections</span>
+        <span id="status-figures" class="status-item hide-mobile">0 figures</span>
+        <span id="status-zoom" class="status-item">100%</span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 1: FIGURE & DIAGRAM FULLSCREEN LIGHTBOX                         -->
+  <!-- ===================================================================== -->
+  <div id="lightbox-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-label="Figure Inspector">
+    <div class="lightbox-container">
+      <div class="lightbox-toolbar">
+        <span id="lightbox-caption" class="lightbox-title">Figure Preview</span>
+        <div class="lightbox-controls">
+          <button id="btn-lightbox-zoom-out" class="toolbar-icon-btn" title="Zoom Out">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          </button>
+          <button id="btn-lightbox-zoom-reset" class="zoom-readout-btn" title="Reset Zoom">100%</button>
+          <button id="btn-lightbox-zoom-in" class="toolbar-icon-btn" title="Zoom In">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          </button>
+          <button id="btn-lightbox-close" class="toolbar-icon-btn" title="Close (Esc)">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+      </div>
+      <div id="lightbox-stage" class="lightbox-stage">
+        <div id="lightbox-content" class="lightbox-content"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 2: QUICK FILE SWITCHER (CTRL+P / CTRL+K)                        -->
+  <!-- ===================================================================== -->
+  <div id="quick-open-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-label="Quick Open File">
+    <div class="quick-open-dialog">
+      <div class="quick-open-input-wrap">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" id="quick-open-input" placeholder="Search files by name or path in current folder & cache..." autocomplete="off" />
+        <kbd class="toolbar-kbd">ESC</kbd>
+      </div>
+      <div id="quick-open-results" class="quick-open-results"></div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 3: TAGGED CONTENT EXPLORER (FAVORITE, IMPORTANT, INCOMPLETE, LIKE)-->
+  <!-- ===================================================================== -->
+  <div id="tags-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-label="Tagged Documents">
+    <div class="tags-dialog">
+      <div class="tags-dialog-header">
+        <div class="tags-dialog-title-group">
+          <div class="tags-header-icon">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+              <line x1="7" y1="7" x2="7.01" y2="7"></line>
+            </svg>
+          </div>
+          <div>
+            <h3>Tagged Documents</h3>
+            <p>Fast access to your favorite, important, incomplete, and liked Markdown files</p>
+          </div>
+        </div>
+        <button id="btn-tags-dialog-close" class="toolbar-icon-btn" title="Close (Esc)">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div class="tags-dialog-controls">
+        <div class="tags-filter-tabs" role="tablist">
+          <button class="tags-tab active" data-tag-filter="all">All Tagged (<span id="tags-tab-count-all">0</span>)</button>
+          <button class="tags-tab tab-favorite" data-tag-filter="favorite">★ Favorite (<span id="tags-tab-count-favorite">0</span>)</button>
+          <button class="tags-tab tab-important" data-tag-filter="important">⚑ Important (<span id="tags-tab-count-important">0</span>)</button>
+          <button class="tags-tab tab-incomplete" data-tag-filter="incomplete">⏱ Incomplete (<span id="tags-tab-count-incomplete">0</span>)</button>
+          <button class="tags-tab tab-like" data-tag-filter="like">👍 Like (<span id="tags-tab-count-like">0</span>)</button>
+        </div>
+        <div class="tags-search-wrap">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="tags-search-input" placeholder="Filter tagged documents by name, path, or title..." autocomplete="off" />
+        </div>
+      </div>
+
+      <div id="tags-results-list" class="tags-results-list"></div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <!-- External Libraries (Marked, Highlight.js, KaTeX, Mermaid, Chart.js) -->
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+  <!-- Application Scripts -->
+  <script src="js/db.js"></script>
+  <script src="js/sample-data.js"></script>
+  <script src="js/markdown-engine.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
